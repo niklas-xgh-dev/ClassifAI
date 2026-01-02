@@ -225,6 +225,44 @@ p.subtitle {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+#history-section {
+    margin-top: 18px;
+    width: 100%;
+    text-align: center;
+}
+#show-history-btn {
+    margin-bottom: 10px;
+}
+.history-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.history-item {
+    background: rgba(255,255,255,0.7);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px 0 rgba(0,0,0,0.03);
+    padding: 12px 14px 10px 14px;
+    border: 1px solid #e3e9f7;
+    text-align: left;
+    animation: fadeIn 0.5s;
+}
+.history-filename {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 1.01rem;
+    margin-bottom: 2px;
+}
+.history-date {
+    font-size: 0.93rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.history-result {
+    font-size: 0.98rem;
+}
+
 @media (max-width: 600px) {
     .main-card {
         padding: 22px 6vw 18px 6vw;

@@ -26,6 +26,10 @@
         <section id="result-container" aria-live="polite" aria-atomic="true">
             <div id="markdown-output" class="markdown-content"></div>
         </section>
+        <section id="history-section">
+            <button class="secondary-btn" id="show-history-btn" type="button" onclick="loadHistory()">Show History</button>
+            <div id="history-list" class="history-list"></div>
+        </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
@@ -70,6 +74,35 @@
                 btn.disabled = false;
                 btnText.style.opacity = "1";
                 btnSpinner.style.display = "none";
+            }
+        }
+
+        async function loadHistory() {
+            const btn = document.getElementById('show-history-btn');
+            const list = document.getElementById('history-list');
+            btn.disabled = true;
+            btn.innerText = "Loading...";
+            list.innerHTML = "";
+            try {
+                const resp = await fetch("/history");
+                if (!resp.ok) throw new Error("Could not fetch history");
+                const data = await resp.json();
+                if (!data.length) {
+                    list.innerHTML = "<div class='file-display'>No history yet.</div>";
+                } else {
+                    list.innerHTML = data.map(
+                        scan => `<div class="history-item">
+                            <div class="history-filename">${scan.filename}</div>
+                            <div class="history-date">${new Date(scan.created_at).toLocaleString()}</div>
+                            <div class="history-result">${marked.parse(scan.result)}</div>
+                        </div>`
+                    ).join("");
+                }
+            } catch (e) {
+                list.innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Show History";
             }
         }
     </script>

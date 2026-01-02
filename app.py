@@ -1,13 +1,30 @@
 import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime
 
-# Load environment variables
+# --- Database setup ---
 load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/classifai")
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+Base = declarative_base()
+
+class ScanResult(Base):
+    __tablename__ = "scan_results"
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(256))
+    result = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ClassifAI: Sensitivity Engine")
 
@@ -49,11 +66,37 @@ async def classify_pdf(file: UploadFile = File(...)):
                 prompt
             ]
         )
+        # Save result to DB
+        db = SessionLocal()
+        scan = ScanResult(filename=file.filename, result=response.text)
+        db.add(scan)
+        db.commit()
+        db.refresh(scan)
+        db.close()
         return {"result": response.text}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Engine Error")
 
+@app.get("/history")
+async def get_history():
+    try:
+        db = SessionLocal()
+        scans = db.query(ScanResult).order_by(ScanResult.created_at.desc()).limit(20).all()
+        db.close()
+        return [
+            {
+                "id": scan.id,
+                "filename": scan.filename,
+                "created_at": scan.created_at.isoformat(),
+                "result": scan.result
+            }
+            for scan in scans
+        ]
+    except SQLAlchemyError as e:
+        print(e)
+        raise HTTPException(status_code=500, detail="DB Error")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
