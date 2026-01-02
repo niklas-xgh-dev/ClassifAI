@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClassifAI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f916.svg">
+</head>
+<body>
+    <main class="main-card" role="main" aria-label="ClassifAI Sensitivity Classifier">
+        <div class="logo" aria-hidden="true">🤖</div>
+        <h1>ClassifAI</h1>
+        <p class="subtitle">Automated Data Sensitivity Classification</p>
+        <form class="upload-container" onsubmit="event.preventDefault(); classify();">
+            <label class="file-label" for="file-input" tabindex="0">
+                <span class="secondary-btn">Choose PDF Document</span>
+                <input type="file" id="file-input" accept="application/pdf" hidden onchange="handleFileSelect()" aria-label="Choose PDF Document">
+            </label>
+            <div id="file-name" class="file-display" aria-live="polite"></div>
+            <button id="action-btn" class="btn" type="submit" disabled>
+                <span id="btn-text">Analyze Sensitivity</span>
+                <span id="btn-spinner" class="mini-spinner" aria-hidden="true"></span>
+            </button>
+        </form>
+        <section id="result-container" aria-live="polite" aria-atomic="true">
+            <div id="markdown-output" class="markdown-content"></div>
+        </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const fileName = document.getElementById('file-name');
+        const btn = document.getElementById('action-btn');
+        const btnText = document.getElementById('btn-text');
+        const btnSpinner = document.getElementById('btn-spinner');
+        const resultContainer = document.getElementById('result-container');
+        const output = document.getElementById('markdown-output');
+
+        function handleFileSelect() {
+            if (fileInput.files.length > 0) {
+                fileName.innerText = fileInput.files[0].name;
+                btn.disabled = false;
+                resultContainer.style.display = 'none';
+            }
+        }
+
+        async function classify() {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btnText.style.opacity = "0.5";
+            btnSpinner.style.display = "inline-block";
+            resultContainer.style.display = 'none';
+            output.innerHTML = "";
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            try {
+                const response = await fetch("/classify", {
+                    method: "POST",
+                    body: formData
+                });
+                if (!response.ok) throw new Error("Analysis failed");
+                const data = await response.json();
+                output.innerHTML = marked.parse(data.result);
+                resultContainer.style.display = 'block';
+            } catch (e) {
+                output.innerHTML = `<div class="error-msg">❌ ${e.message}</div>`;
+                resultContainer.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.style.opacity = "1";
+                btnSpinner.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
